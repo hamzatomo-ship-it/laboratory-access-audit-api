@@ -1,0 +1,8 @@
+# Virtual environment
+.venv/
+# python cache
+--pycache--/
+# VS code
+.vscode/
+#OS junk
+.DS_Store
