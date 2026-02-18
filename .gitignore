@@ -1,8 +1,14 @@
 # Virtual environment
 .venv/
-# python cache
---pycache--/
-# VS code
-.vscode/
-#OS junk
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# OS / editor noise
 .DS_Store
+.vscode/
