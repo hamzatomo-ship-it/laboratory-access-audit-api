@@ -1,87 +1,39 @@
 # Laboratory Access Audit API
 
 ## Overview
+The **Laboratory Access Audit API** is a RESTful API built with **Flask** that simulates how laboratory information systems (e.g., WinPath/LIMS) validate sample bookings and handle common data integrity issues.
 
-The **Laboratory Access Audit API** is a RESTful API built with Flask that simulates how laboratory information systems (such as WinPath) validate sample bookings and handle common data integrity errors.
+It focuses on real-world validation problems such as:
+- Inactive or deprecated reference codes
+- Parent–child (foreign key) mismatches (e.g., source code belongs to a different area)
+- Invalid, missing, or malformed booking data
 
-The project is inspired by real-world laboratory workflows and errors encountered during sample booking, including:
-
-- Inactive reference codes
-- Parent–child (foreign key) mismatches
-- Invalid or missing booking data
-
-The API validates booking requests, rejects invalid data with clear error responses, and records all actions in an audit log.
+The API validates booking requests, returns **clear error responses**, and records booking attempts in an **audit log** for traceability.
 
 ---
 
 ## Key Features
-
-- RESTful API using Flask
-- Realistic laboratory reference data (area codes & source codes)
-- Booking validation with meaningful error messages
-- Audit trail of accepted and rejected bookings
-- Separation of concerns using classes
-- Clear HTTP status codes
+- RESTful API implemented using Flask
+- Reference data for **area codes** and **source codes**
+- Booking validation based on realistic business rules
+- Meaningful error handling with appropriate HTTP status codes
+- Audit trail for accepted/rejected bookings
+- Unit tests for core validation logic (Python `unittest`)
 
 ---
 
 ## Technologies Used
-
 - Python 3
 - Flask
 - JSON
-- Postman (for API testing)
+- unittest (Python built-in testing framework)
+- Postman (manual API testing)
 
 ---
 
-## API Endpoints
+## Getting Started
 
-### Health Check
+### 1) Install dependencies
+```bash
+pip install -r requirements.txt
 
-**GET** `/health`
-
-Returns the service health status.
-
-Example response:
-
-```json
-{
-  "status": "ok",
-  "service": "laboratory-access-audit-api"
-}
-
-### List Area Codes
-
-**GET** `/area-codes`
-
-Returns all laboratory area codes.
-
-Optional query parameters:
-- `active=true` – return only active area codes
-
-
-### List Source Codes
-
-**GET** `/source-codes`
-
-Returns laboratory source codes.
-
-Optional query parameters:
-- `active=true`
-- `area_code=RDZ`
-
-
-### Create Booking
-
-**POST** `/bookings`
-
-Simulates booking a laboratory sample.
-
-Example request:
-```json
-{
-  "area_code": "RDZ",
-  "source_code": "SHORE_456",
-  "clinician": "Dr Tim",
-  "sample_id": "26B987654"
-}
