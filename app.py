@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, request
 from datetime import datetime, timezone
-
+from db import insert_booking, insert_audit
 from validator import BookingValidator
-
+from dotenv import load_dotenv
+load_dotenv()
 app = Flask(__name__)
 
 # In-memory "reference data"
@@ -105,42 +106,42 @@ def list_source_codes():
 
 @app.route("/bookings", methods=["POST"])
 def create_booking():
-    """
-    Simulates booking in a sample.
 
-    Example JSON body:
-    {
-      "area_code": "RDZ",
-      "source_code": "SHORE_456",
-      "clinician": "Dr Tim",
-      "sample_id": "26B987654"
-    }
-    """
+    print("POST/booking HIT")
     payload = request.get_json(silent=True)
 
     ok, result = validator.validate(payload)
 
     if not ok:
-        audit("BOOKING_REJECTED", result["message"], {"payload": payload})
+        insert_audit(
+            "BOOKING_REJECTED",
+            result["message"],
+            {"payload": payload, "error": result},
+        )
         return error_response(
             result["http_status"],
             result["error_code"],
             result["message"],
-            result["details"]
+            result["details"],
         )
 
-    # Valid booking
+    booking_db_id = insert_booking(payload)
+
     booking = {
-        "booking_id": f"BK-{len(AUDIT_LOG)+1:05d}",
+        "booking_id": f"BK-{booking_db_id:05d}",
         "sample_id": payload["sample_id"],
         "clinician": payload["clinician"],
         "area_code": payload["area_code"],
         "source_code": payload["source_code"],
         "status": "BOOKED",
-        "created_at": now_iso()
+        "created_at": now_iso(),
     }
 
-    audit("BOOKING_CREATED", f"Sample '{payload['sample_id']}' booked successfully.", {"booking": booking})
+    insert_audit(
+        "BOOKING_CREATED",
+        f"Sample '{payload['sample_id']}' booked successfully.",
+        {"booking": booking},
+    )
 
     return jsonify({"message": "Booking created", "data": booking}), 201
 
