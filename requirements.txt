@@ -10,3 +10,7 @@ mysql-connector-python==9.6.0
 mysqlclient==2.2.8
 python-dotenv==1.2.2
 Werkzeug==3.1.5
+
+# Note: AI audit summary feature uses the Anthropic API (api.anthropic.com)
+# via Python's built-in urllib — no additional package required.
+# Set ANTHROPIC_API_KEY in your .env file before running.

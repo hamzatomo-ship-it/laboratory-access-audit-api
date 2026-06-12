@@ -39,13 +39,12 @@ class TestBookingValidator(unittest.TestCase):
         self.assertEqual(result["error_code"], "MISSING_FIELDS")
 
     def test_source_code_not_found(self):
-        payload = {
+        payload ={
             "area_code": "RDZ",
             "source_code": "FAKE_999",  # does not exist
             "clinician": "Dr Tim",
             "sample_id": "26B000004"
         }
-
         ok, result = self.validator.validate(payload)
 
         self.assertFalse(ok)

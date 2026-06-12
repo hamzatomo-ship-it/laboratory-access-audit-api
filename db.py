@@ -69,3 +69,52 @@ def insert_audit(event_type: str, message: str, details: dict | None = None):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def get_audit_log(event_type: str | None = None, limit: int = 100) -> list[dict]:
+    """
+    Retrieves audit log entries from the database.
+    Optionally filters by event_type.
+    Returns a list of dicts ordered by most recent first.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    if event_type:
+        cur.execute(
+            """
+            SELECT event_type, message, details, created_at
+            FROM audit_log
+            WHERE event_type = %s
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (event_type, limit),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT event_type, message, details, created_at
+            FROM audit_log
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # Parse the details JSON string back into a dict
+    for row in rows:
+        if row["details"]:
+            try:
+                row["details"] = json.loads(row["details"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        # Convert datetime to ISO string for JSON serialisation
+        if row["created_at"]:
+            row["created_at"] = row["created_at"].isoformat()
+
+    return rows

@@ -1,8 +1,13 @@
 from flask import Flask, jsonify, request
 from datetime import datetime, timezone
-from db import insert_booking, insert_audit
+from db import insert_booking, insert_audit, get_audit_log
 from validator import BookingValidator
 from dotenv import load_dotenv
+import os
+import json
+import urllib.request
+import urllib.error
+
 load_dotenv()
 app = Flask(__name__)
 
@@ -59,7 +64,7 @@ def error_response(http_status: int, error_code: str, message: str, details: dic
 def home():
     return jsonify({
         "message": "Laboratory Access Audit API is running",
-        "version": "0.2.0"
+        "version": "0.3.0"
     })
 
 
@@ -145,8 +150,7 @@ def create_booking():
 
     return jsonify({"message": "Booking created", "data": booking}), 201
 
-# Audit endpoint
-
+# Audit endpoints
 
 @app.route("/audit", methods=["GET"])
 def get_audit():
@@ -158,6 +162,73 @@ def get_audit():
         data = [e for e in data if e["event_type"] == event_type]
 
     return jsonify({"data": data})
+
+
+@app.route("/audit/summary", methods=["GET"])
+def audit_summary():
+    """
+    Uses the Anthropic API to generate a plain-English summary of the
+    current audit log, highlighting patterns such as repeated rejections,
+    common error types, or suspicious activity.
+    """
+    try:
+        audit_entries = get_audit_log(limit=100)
+    except Exception as e:
+        return error_response(500, "DB_ERROR", "Failed to retrieve audit log from database.", {"detail": str(e)})
+
+    if not audit_entries:
+        return jsonify({"summary": "No audit events recorded yet."}), 200
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return error_response(500, "CONFIG_ERROR", "ANTHROPIC_API_KEY is not set.")
+
+    # Build a compact representation of the audit log for the prompt
+    log_text = json.dumps(audit_entries, indent=2)
+
+    prompt = (
+        "You are an audit analyst for a laboratory information system. "
+        "Below is the audit log from the Laboratory Access Audit API. "
+        "Each entry has a timestamp, event_type, message, and metadata.\n\n"
+        "Please provide a concise plain-English summary that:\n"
+        "- States the total number of events\n"
+        "- Breaks down successful bookings vs rejections\n"
+        "- Highlights any notable patterns (e.g. repeated rejections from the same "
+        "clinician, common error codes, mismatched source/area codes)\n"
+        "- Flags anything that may warrant further investigation\n\n"
+        "Keep the summary clear and professional, as if reporting to a lab manager.\n\n"
+        f"Audit log:\n{log_text}"
+    )
+
+    request_body = json.dumps({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 1024,
+        "messages": [{"role": "user", "content": prompt}]
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=request_body,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            summary_text = result["content"][0]["text"]
+            return jsonify({"summary": summary_text}), 200
+
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        return error_response(502, "AI_API_ERROR", "Failed to reach Anthropic API.", {"detail": error_body})
+
+    except Exception as e:
+        return error_response(500, "UNEXPECTED_ERROR", str(e))
 
 
 if __name__ == "__main__":
