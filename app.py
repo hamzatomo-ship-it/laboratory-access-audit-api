@@ -233,8 +233,9 @@ def audit_summary():
 
 
 if __name__ == "__main__":
+    # Debug mode only when FLASK_DEBUG=1 is set locally, never by default
     app.run(debug=os.getenv("FLASK_DEBUG") == "1", port=5001)
-     # Debug mode only when FLASK_DEBUG=1 is set locally, never by default
+     
 
 
 
