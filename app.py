@@ -218,7 +218,8 @@ def audit_summary():
     )
 
     try:
-        with urllib.request.urlopen(req) as response:
+         # URL is a fixed https:// address, so the file:// risk bandit warns about cannot happen here
+        with urllib.request.urlopen(req, timeout=30) as response: # nosec B310
             result = json.loads(response.read().decode("utf-8"))
             summary_text = result["content"][0]["text"]
             return jsonify({"summary": summary_text}), 200
@@ -232,7 +233,8 @@ def audit_summary():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=os.getenv("FLASK_DEBUG") == "1", port=5001)
+     # Debug mode only when FLASK_DEBUG=1 is set locally, never by default
 
 
 
